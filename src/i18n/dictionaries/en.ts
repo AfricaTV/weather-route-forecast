@@ -29,6 +29,10 @@ export const en: Translations = {
 
   'nav.start': 'Start',
   'nav.stop': 'Stop',
+  'nav.reset_north': 'North up',
+  'nav.resume_heading': 'Resume heading-up',
+  'nav.rotate_left': 'Rotate left',
+  'nav.rotate_right': 'Rotate right',
 
   'timeline.title': 'Forecast along route',
 

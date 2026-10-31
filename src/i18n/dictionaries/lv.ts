@@ -29,6 +29,10 @@ export const lv: Translations = {
 
   'nav.start': 'Sākt',
   'nav.stop': 'Stop',
+  'nav.reset_north': 'Ziemeļi augšā',
+  'nav.resume_heading': 'Atsākt kursa režīmu',
+  'nav.rotate_left': 'Pagriezt pa kreisi',
+  'nav.rotate_right': 'Pagriezt pa labi',
 
   'timeline.title': 'Prognoze maršrutā',
 

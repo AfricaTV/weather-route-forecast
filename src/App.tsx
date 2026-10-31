@@ -156,7 +156,7 @@ function App() {
             <WeatherTimeline
               samples={samples}
               selectedIndex={selectedIndex}
-              onSelect={navigating ? () => {} : setSelectedIndex}
+              onSelect={setSelectedIndex}
             />
           </>
         )}
@@ -170,8 +170,8 @@ function App() {
         <RouteMap
           route={route}
           samples={samples}
-          selectedIndex={navigating ? null : selectedIndex}
-          onSelect={navigating ? () => {} : setSelectedIndex}
+          selectedIndex={selectedIndex}
+          onSelect={setSelectedIndex}
           navigating={navigating}
           onNavigationError={handleNavigationError}
         />

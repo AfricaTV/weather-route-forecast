@@ -29,6 +29,10 @@ export const ru: Translations = {
 
   'nav.start': 'Начать',
   'nav.stop': 'Стоп',
+  'nav.reset_north': 'Север вверх',
+  'nav.resume_heading': 'Снова по курсу',
+  'nav.rotate_left': 'Повернуть влево',
+  'nav.rotate_right': 'Повернуть вправо',
 
   'timeline.title': 'Прогноз по маршруту',
 

@@ -11,3 +11,9 @@ export function bearingDegrees(from: LatLon, to: LatLon): number {
   const θ = Math.atan2(y, x);
   return ((θ * 180) / Math.PI + 360) % 360;
 }
+
+/** Shortest-path interpolation between angles (degrees). `t` in [0, 1]. */
+export function lerpAngle(from: number, to: number, t: number): number {
+  const diff = ((to - from + 540) % 360) - 180;
+  return (from + diff * t + 360) % 360;
+}
