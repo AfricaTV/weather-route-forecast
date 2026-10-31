@@ -12,7 +12,7 @@ import 'leaflet/dist/leaflet.css';
 import type { Route, WeatherSample } from '../types';
 import { weatherEmoji } from '../api/weather';
 import { WeatherDetails } from './WeatherDetails';
-import { watchPosition, clearWatch, type GeoFix } from '../lib/geolocation';
+import { watchPosition, clearWatch, getCurrentPosition, type GeoFix } from '../lib/geolocation';
 import { bearingDegrees, lerpAngle } from '../lib/bearing';
 import { I18nError, useI18n } from '../i18n';
 
@@ -127,6 +127,15 @@ function makeNavArrowIcon(heading: number): L.DivIcon {
     className: 'nav-arrow-wrapper',
     iconSize: [40, 40],
     iconAnchor: [20, 20],
+  });
+}
+
+function makeUserLocationIcon(): L.DivIcon {
+  return L.divIcon({
+    html: `<div class="user-location-dot"></div>`,
+    className: 'user-location-wrapper',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
   });
 }
 
@@ -647,6 +656,9 @@ export function RouteMap({
   const [pose, setPose] = useState<NavPose | null>(null);
   const [bearing, setBearing] = useState(0);
   const [autoFollowHeading, setAutoFollowHeading] = useState(true);
+  const [locating, setLocating] = useState(false);
+  const [locateFix, setLocateFix] = useState<{ lat: number; lon: number } | null>(null);
+  const userLocationIconRef = useRef(makeUserLocationIcon());
 
   useEffect(() => {
     if (selectedIndex == null) return;
@@ -737,6 +749,42 @@ export function RouteMap({
     setBearing(0);
   }
 
+  async function handleLocateMe() {
+    const map = mapRef.current;
+    if (!map || locating) return;
+
+    // While navigating we already have a live pose — snap back and resume follow.
+    if (navigating && pose) {
+      setAutoFollowHeading(true);
+      map.setView([pose.lat, pose.lon], Math.max(map.getZoom(), NAV_ZOOM), { animate: true });
+      map.getContainer().dispatchEvent(
+        new CustomEvent('map:set-bearing', {
+          detail: { bearing: pose.heading, autoFollow: true },
+        }),
+      );
+      return;
+    }
+
+    setLocating(true);
+    try {
+      const pos = await getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 5000,
+      });
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      setLocateFix({ lat, lon });
+      map.setView([lat, lon], Math.max(map.getZoom(), 15), { animate: true });
+    } catch (e) {
+      const message =
+        e instanceof I18nError ? t(e.key, e.params) : t('errors.geolocation_unavailable');
+      onNavigationError?.(message);
+    } finally {
+      setLocating(false);
+    }
+  }
+
   return (
     <div className="route-map-shell">
       <MapContainer
@@ -785,6 +833,13 @@ export function RouteMap({
             zIndexOffset={1000}
           />
         )}
+        {!navigating && locateFix && (
+          <Marker
+            position={[locateFix.lat, locateFix.lon]}
+            icon={userLocationIconRef.current}
+            zIndexOffset={900}
+          />
+        )}
         <FitBounds route={route} enabled={hasRoute && !navigating} />
         <MapRotationController
           navigating={navigating}
@@ -796,6 +851,22 @@ export function RouteMap({
         />
         <InvalidateOnResize active={!hasRoute || navigating} />
       </MapContainer>
+
+      <button
+        type="button"
+        className="map-locate-fab"
+        onClick={() => void handleLocateMe()}
+        disabled={locating}
+        title={locating ? t('nav.locating') : t('nav.locate_me')}
+        aria-label={locating ? t('nav.locating') : t('nav.locate_me')}
+      >
+        <span className="map-locate-icon" aria-hidden="true">
+          <span className="tick tick-n" />
+          <span className="tick tick-e" />
+          <span className="tick tick-s" />
+          <span className="tick tick-w" />
+        </span>
+      </button>
 
       <div className="map-rotate-controls">
         <button

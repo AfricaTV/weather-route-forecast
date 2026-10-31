@@ -361,7 +361,7 @@ html, body, #root {
 .nav-stop-fab {
   position: absolute;
   right: 12px;
-  bottom: 24px;
+  bottom: 88px;
   z-index: 1100;
   background: white;
   color: #b91c1c;
@@ -372,6 +372,100 @@ html, body, #root {
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.map-locate-fab {
+  position: absolute;
+  right: 12px;
+  bottom: 24px;
+  z-index: 1100;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-locate-fab:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.map-locate-fab:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.map-locate-icon {
+  position: relative;
+  width: 22px;
+  height: 22px;
+}
+
+.map-locate-icon::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 2px solid #1e293b;
+  border-radius: 50%;
+}
+
+.map-locate-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: #1e293b;
+}
+
+.map-locate-icon .tick {
+  position: absolute;
+  background: #1e293b;
+}
+
+.map-locate-icon .tick-n,
+.map-locate-icon .tick-s {
+  left: 50%;
+  width: 2px;
+  height: 4px;
+  margin-left: -1px;
+}
+
+.map-locate-icon .tick-n { top: 0; }
+.map-locate-icon .tick-s { bottom: 0; }
+
+.map-locate-icon .tick-e,
+.map-locate-icon .tick-w {
+  top: 50%;
+  width: 4px;
+  height: 2px;
+  margin-top: -1px;
+}
+
+.map-locate-icon .tick-e { right: 0; }
+.map-locate-icon .tick-w { left: 0; }
+
+.user-location-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.user-location-wrapper {
+  background: transparent !important;
+  border: none !important;
 }
 
 .nav-stop-fab:hover {

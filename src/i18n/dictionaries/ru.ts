@@ -33,6 +33,8 @@ export const ru: Translations = {
   'nav.resume_heading': 'Снова по курсу',
   'nav.rotate_left': 'Повернуть влево',
   'nav.rotate_right': 'Повернуть вправо',
+  'nav.locate_me': 'Моё местоположение',
+  'nav.locating': 'Определяю…',
 
   'timeline.title': 'Прогноз по маршруту',
 

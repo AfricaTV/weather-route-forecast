@@ -33,6 +33,8 @@ export const lv: Translations = {
   'nav.resume_heading': 'Atsākt kursa režīmu',
   'nav.rotate_left': 'Pagriezt pa kreisi',
   'nav.rotate_right': 'Pagriezt pa labi',
+  'nav.locate_me': 'Mana atrašanās vieta',
+  'nav.locating': 'Nosaku…',
 
   'timeline.title': 'Prognoze maršrutā',
 

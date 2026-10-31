@@ -30,7 +30,9 @@ function toGeoFix(pos: GeolocationPosition): GeoFix {
   };
 }
 
-export function getCurrentPosition(): Promise<GeolocationPosition> {
+export function getCurrentPosition(
+  options: PositionOptions = { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) {
       reject(new I18nError('errors.geolocation_unsupported'));
@@ -39,7 +41,7 @@ export function getCurrentPosition(): Promise<GeolocationPosition> {
     navigator.geolocation.getCurrentPosition(
       resolve,
       (err) => reject(geolocationError(err)),
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+      options,
     );
   });
 }
