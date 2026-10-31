@@ -17,6 +17,10 @@ npm install
 npm run dev      # http://localhost:5173
 ```
 
+**Live site:** https://africatv.github.io/weather-route-forecast/
+
+Pushes to `main` are built and published automatically via GitHub Actions.
+
 Other commands:
 
 ```bash
