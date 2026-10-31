@@ -154,6 +154,16 @@ function setBillboardUpright(container: HTMLElement, heading: number | null) {
   });
 }
 
+type TouchZoomHandler = L.Handler & { _zooming?: boolean; _scale?: number };
+
+function pinchScale(map: L.Map): number {
+  const tz = map.touchZoom as TouchZoomHandler | undefined;
+  if (tz?._zooming && typeof tz._scale === 'number' && tz._scale > 0) {
+    return tz._scale;
+  }
+  return 1;
+}
+
 function applyMapBearing(map: L.Map, bearing: number) {
   const pane = map.getPane('mapPane');
   if (!pane) return;
@@ -162,8 +172,20 @@ function applyMapBearing(map: L.Map, bearing: number) {
     ?? new L.Point(0, 0);
   const size = map.getSize();
   const container = map.getContainer();
+  // Preserve Leaflet's live pinch scale — overwriting it causes flicker/stepped zoom.
+  const scale = pinchScale(map);
+  const scalePart = scale === 1 ? '' : ` scale(${scale})`;
+  const pinching = scale !== 1;
 
   if (Math.abs(shortestDelta(0, bearing)) < 0.05) {
+    // During native pinch with no rotation, leave Leaflet's transform alone —
+    // rewriting origin/transform mid-gesture causes flicker.
+    if (pinching) {
+      container.classList.remove('map-rotated');
+      container.style.removeProperty('--nav-heading');
+      setBillboardUpright(container, null);
+      return;
+    }
     pane.style.transformOrigin = '';
     pane.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0px)`;
     container.classList.remove('map-rotated');
@@ -172,8 +194,11 @@ function applyMapBearing(map: L.Map, bearing: number) {
     return;
   }
 
-  pane.style.transformOrigin = `${-pos.x + size.x / 2}px ${-pos.y + size.y / 2}px`;
-  pane.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0px) rotate(${-bearing}deg)`;
+  // Keep Leaflet's pinch origin when zooming so scale stays centered on fingers.
+  if (!pinching) {
+    pane.style.transformOrigin = `${-pos.x + size.x / 2}px ${-pos.y + size.y / 2}px`;
+  }
+  pane.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0px)${scalePart} rotate(${-bearing}deg)`;
   container.classList.add('map-rotated');
   container.style.setProperty('--nav-heading', `${bearing}deg`);
   setBillboardUpright(container, bearing);
@@ -383,12 +408,12 @@ function MapRotationController({
     const container = map.getContainer();
 
     // --- Two-finger rotate (real touch devices) ---
-    // Note: Chrome DevTools "mobile view" on a Mac trackpad usually does NOT send
-    // multi-touch events — it sends wheel events. See Shift+scroll / gesture handlers below.
+    // Pinch-zoom is left to Leaflet's native touchZoom (smooth). We only update bearing
+    // and must NOT preventDefault / setZoom — that caused stepped zoom + screen flicker.
+    // Chrome DevTools mobile view on Mac trackpad usually sends wheel, not multi-touch.
     let gestureStartAngle = 0;
     let gestureStartBearing = 0;
-    let pinchStartDist = 0;
-    let pinchStartZoom = map.getZoom();
+    let twoFingerActive = false;
 
     const beginManualRotate = () => {
       onAutoFollowHeadingChange(false);
@@ -397,47 +422,34 @@ function MapRotationController({
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 2) return;
+      twoFingerActive = true;
       beginManualRotate();
       gestureStartAngle = touchAngle(e.touches[0], e.touches[1]);
       gestureStartBearing = smoothBearingRef.current;
-      const dx = e.touches[1].clientX - e.touches[0].clientX;
-      const dy = e.touches[1].clientY - e.touches[0].clientY;
-      pinchStartDist = Math.hypot(dx, dy) || 1;
-      pinchStartZoom = map.getZoom();
-      if (map.touchZoom.enabled()) map.touchZoom.disable();
-      if (map.dragging.enabled()) map.dragging.disable();
+      // Keep Leaflet touchZoom enabled for smooth pinch.
+      if (!map.touchZoom.enabled()) map.touchZoom.enable();
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!rotatingGestureRef.current || e.touches.length !== 2) return;
-      e.preventDefault();
-      e.stopPropagation();
+      if (!twoFingerActive || e.touches.length !== 2) return;
       const angle = touchAngle(e.touches[0], e.touches[1]);
       // Invert so the map turns with the fingers (natural feel on real devices).
       const delta = shortestDelta(gestureStartAngle, angle);
-      setBearingImmediate(gestureStartBearing - delta);
-
-      const dx = e.touches[1].clientX - e.touches[0].clientX;
-      const dy = e.touches[1].clientY - e.touches[0].clientY;
-      const dist = Math.hypot(dx, dy) || 1;
-      const zoomDelta = Math.log2(dist / pinchStartDist);
-      const nextZoom = Math.min(
-        map.getMaxZoom(),
-        Math.max(map.getMinZoom(), pinchStartZoom + zoomDelta),
-      );
-      if (Math.abs(nextZoom - map.getZoom()) > 0.01) {
-        map.setZoom(nextZoom, { animate: false });
-      }
+      // Update bearing without stealing the event from Leaflet pinch-zoom.
+      const next = normalizeDeg(gestureStartBearing - delta);
+      targetBearingRef.current = next;
+      smoothBearingRef.current = next;
+      onBearingChange(next);
+      applyMapBearing(map, next);
     };
 
     const onTouchEnd = (e: TouchEvent) => {
       if (e.touches.length >= 2) return;
-      if (!rotatingGestureRef.current) return;
+      if (!twoFingerActive) return;
+      twoFingerActive = false;
       rotatingGestureRef.current = false;
-      if (!map.dragging.enabled()) map.dragging.enable();
-      if (Math.abs(shortestDelta(0, smoothBearingRef.current)) < NORTH_EPS) {
-        if (!map.touchZoom.enabled()) map.touchZoom.enable();
-      }
+      if (!map.touchZoom.enabled()) map.touchZoom.enable();
+      applyMapBearing(map, smoothBearingRef.current);
     };
 
     // --- Mac trackpad / desktop: Shift + scroll to rotate ---
@@ -518,11 +530,11 @@ function MapRotationController({
       rotatingGestureRef.current = false;
     };
 
-    // Capture phase so we win against Leaflet for two-finger / wheel.
-    container.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
-    container.addEventListener('touchmove', onTouchMove, { capture: true, passive: false });
-    container.addEventListener('touchend', onTouchEnd, true);
-    container.addEventListener('touchcancel', onTouchEnd, true);
+    // Bubble phase for touch so Leaflet pinch-zoom runs; capture only for wheel/alt-drag.
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchend', onTouchEnd);
+    container.addEventListener('touchcancel', onTouchEnd);
     container.addEventListener('wheel', onWheel, { capture: true, passive: false });
     container.addEventListener('gesturestart', onGestureStart, { passive: false } as AddEventListenerOptions);
     container.addEventListener('gesturechange', onGestureChange, { passive: false } as AddEventListenerOptions);
@@ -533,6 +545,9 @@ function MapRotationController({
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
+    // Ensure native pinch is available (we used to leave it disabled after rotate).
+    if (!map.touchZoom.enabled()) map.touchZoom.enable();
+
     return () => {
       map.off('move', onMoveOrZoom);
       map.off('zoom', onMoveOrZoom);
@@ -541,10 +556,10 @@ function MapRotationController({
       map.off('dragstart', onDragStart);
       map.off('dragend', onDragEnd);
       unpatchDrag?.();
-      container.removeEventListener('touchstart', onTouchStart, true);
-      container.removeEventListener('touchmove', onTouchMove, true);
-      container.removeEventListener('touchend', onTouchEnd, true);
-      container.removeEventListener('touchcancel', onTouchEnd, true);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
       container.removeEventListener('wheel', onWheel, true);
       container.removeEventListener('gesturestart', onGestureStart);
       container.removeEventListener('gesturechange', onGestureChange);
