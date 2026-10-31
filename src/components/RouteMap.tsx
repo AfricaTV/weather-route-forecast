@@ -293,6 +293,8 @@ function MapRotationController({
   const poseRef = useRef(pose);
   const rafRef = useRef<number | null>(null);
   const zoomReadyRef = useRef(false);
+  const userAdjustedZoomRef = useRef(false);
+  const programmaticZoomRef = useRef(false);
   const userDraggingRef = useRef(false);
   const autoFollowRef = useRef(autoFollowHeading);
   const rotatingGestureRef = useRef(false);
@@ -547,37 +549,54 @@ function MapRotationController({
   useEffect(() => {
     if (!navigating) {
       zoomReadyRef.current = false;
+      userAdjustedZoomRef.current = false;
       // Overview is easier north-up after Stop.
       onAutoFollowHeadingChange(true);
       setBearingImmediate(0);
       return;
     }
 
+    userAdjustedZoomRef.current = false;
     onAutoFollowHeadingChange(true);
     if (route && route.points.length >= 2) {
       const initial = bearingDegrees(route.points[0], route.points[1]);
       setBearingImmediate(initial);
     }
 
+    const onZoomEnd = () => {
+      // Any zoom that wasn't our initial setView is a user (or gesture) change — keep it.
+      if (!programmaticZoomRef.current) {
+        userAdjustedZoomRef.current = true;
+      }
+    };
+    map.on('zoomend', onZoomEnd);
+
     const start = route?.points[0];
     const zoomToNav = () => {
+      // Don't yank zoom back if the user already pinched.
+      if (userAdjustedZoomRef.current) return;
       map.invalidateSize({ animate: false });
       const p = poseRef.current;
       const lat = p?.lat ?? start?.lat;
       const lon = p?.lon ?? start?.lon;
       if (lat == null || lon == null) return;
+      programmaticZoomRef.current = true;
       map.setView([lat, lon], NAV_ZOOM, { animate: false });
+      programmaticZoomRef.current = false;
       applyMapBearing(map, smoothBearingRef.current);
       zoomReadyRef.current = true;
     };
 
     zoomToNav();
     const timers = [80, 200, 450].map((ms) => window.setTimeout(zoomToNav, ms));
-    return () => timers.forEach((id) => window.clearTimeout(id));
+    return () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      map.off('zoomend', onZoomEnd);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigating, map, route]);
 
-  // GPS follow while navigating and auto-follow is on.
+  // GPS follow while navigating: pan only — never re-force NAV_ZOOM after user pinches out.
   useEffect(() => {
     if (!navigating || !pose) return;
 
@@ -587,14 +606,18 @@ function MapRotationController({
 
     if (userDraggingRef.current || rotatingGestureRef.current) return;
 
-    if (!zoomReadyRef.current || map.getZoom() < NAV_ZOOM - 0.5) {
+    if (!zoomReadyRef.current && !userAdjustedZoomRef.current) {
+      programmaticZoomRef.current = true;
       map.setView([pose.lat, pose.lon], NAV_ZOOM, { animate: false });
+      programmaticZoomRef.current = false;
       applyMapBearing(map, smoothBearingRef.current);
       zoomReadyRef.current = true;
-    } else {
-      map.panTo([pose.lat, pose.lon], { animate: false });
-      applyMapBearing(map, smoothBearingRef.current);
+      return;
     }
+
+    // Keep the user's current zoom level; only follow position.
+    map.panTo([pose.lat, pose.lon], { animate: false });
+    applyMapBearing(map, smoothBearingRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigating, pose, map, autoFollowHeading]);
 
