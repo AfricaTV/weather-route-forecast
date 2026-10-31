@@ -4,6 +4,8 @@ export const ru: Translations = {
   'app.title': 'Погода по маршруту',
   'app.error_generic': 'Что-то пошло не так',
   'app.error_too_far': 'Маршрут заканчивается позже 16 дней — прогноз погоды недоступен.',
+  'app.collapse_sidebar': 'Свернуть панель',
+  'app.expand_sidebar': 'Развернуть панель',
 
   'form.label_from': 'Откуда',
   'form.label_to': 'Куда',

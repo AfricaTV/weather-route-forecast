@@ -30,6 +30,20 @@ function FitBounds({ route }: { route: Route | null }) {
   return null;
 }
 
+function InvalidateOnResize() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const target = container.parentElement ?? container;
+    const ro = new ResizeObserver(() => {
+      map.invalidateSize({ animate: false });
+    });
+    ro.observe(target);
+    return () => ro.disconnect();
+  }, [map]);
+  return null;
+}
+
 function makeWeatherIcon(sample: WeatherSample, isSelected: boolean): L.DivIcon {
   const html = `
     <div class="weather-marker${isSelected ? ' selected' : ''}">
@@ -99,6 +113,7 @@ export function RouteMap({ route, samples, selectedIndex, onSelect }: Props) {
         </Marker>
       ))}
       <FitBounds route={route} />
+      <InvalidateOnResize />
     </MapContainer>
   );
 }

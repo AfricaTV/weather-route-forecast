@@ -35,6 +35,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [resolvedPlaces, setResolvedPlaces] = useState<Place[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   async function handleSubmit(values: RouteFormValues) {
     setLoading(true);
@@ -72,36 +73,61 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <h1>{t('app.title')}</h1>
-          <LanguageSwitcher />
-        </div>
-        <RouteForm onSubmit={handleSubmit} loading={loading} />
-        {error && <div className="error">{error}</div>}
-        {route && resolvedPlaces.length > 0 && (
-          <div className="route-info">
-            <ol className="route-points">
-              {resolvedPlaces.map((p, i) => (
-                <li key={i}>{p.displayName}</li>
-              ))}
-            </ol>
-            <div>
-              <strong>{t('route_info.distance')}</strong>{' '}
-              {t('route_info.distance_km', { km: (route.totalDistanceM / 1000).toFixed(0) })}
+    <div className={`app${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+      <aside className={`sidebar${sidebarCollapsed ? ' collapsed' : ''}`}>
+        {sidebarCollapsed ? (
+          <button
+            type="button"
+            className="sidebar-expand"
+            onClick={() => setSidebarCollapsed(false)}
+            aria-label={t('app.expand_sidebar')}
+            title={t('app.expand_sidebar')}
+          >
+            »
+          </button>
+        ) : (
+          <>
+            <div className="sidebar-header">
+              <h1>{t('app.title')}</h1>
+              <div className="sidebar-header-actions">
+                <LanguageSwitcher />
+                <button
+                  type="button"
+                  className="sidebar-toggle"
+                  onClick={() => setSidebarCollapsed(true)}
+                  aria-label={t('app.collapse_sidebar')}
+                  title={t('app.collapse_sidebar')}
+                >
+                  «
+                </button>
+              </div>
             </div>
-            <div>
-              <strong>{t('route_info.duration')}</strong>{' '}
-              {formatDuration(t, route.totalDurationSec)}
-            </div>
-          </div>
+            <RouteForm onSubmit={handleSubmit} loading={loading} />
+            {error && <div className="error">{error}</div>}
+            {route && resolvedPlaces.length > 0 && (
+              <div className="route-info">
+                <ol className="route-points">
+                  {resolvedPlaces.map((p, i) => (
+                    <li key={i}>{p.displayName}</li>
+                  ))}
+                </ol>
+                <div>
+                  <strong>{t('route_info.distance')}</strong>{' '}
+                  {t('route_info.distance_km', { km: (route.totalDistanceM / 1000).toFixed(0) })}
+                </div>
+                <div>
+                  <strong>{t('route_info.duration')}</strong>{' '}
+                  {formatDuration(t, route.totalDurationSec)}
+                </div>
+              </div>
+            )}
+            <WeatherTimeline
+              samples={samples}
+              selectedIndex={selectedIndex}
+              onSelect={setSelectedIndex}
+            />
+          </>
         )}
-        <WeatherTimeline
-          samples={samples}
-          selectedIndex={selectedIndex}
-          onSelect={setSelectedIndex}
-        />
       </aside>
       <main className="map-pane">
         <RouteMap

@@ -4,6 +4,8 @@ export const en: Translations = {
   'app.title': 'Weather along route',
   'app.error_generic': 'Something went wrong',
   'app.error_too_far': 'Route ends more than 16 days from now — forecast not available.',
+  'app.collapse_sidebar': 'Collapse sidebar',
+  'app.expand_sidebar': 'Expand sidebar',
 
   'form.label_from': 'From',
   'form.label_to': 'To',

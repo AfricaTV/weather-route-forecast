@@ -4,6 +4,8 @@ export const lv: Translations = {
   'app.title': 'Laika prognoze maršrutā',
   'app.error_generic': 'Kaut kas nogāja greizi',
   'app.error_too_far': 'Maršruts beidzas vēlāk nekā pēc 16 dienām — prognoze nav pieejama.',
+  'app.collapse_sidebar': 'Sakļaut paneli',
+  'app.expand_sidebar': 'Izvērst paneli',
 
   'form.label_from': 'No',
   'form.label_to': 'Uz',
