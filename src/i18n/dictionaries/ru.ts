@@ -27,6 +27,9 @@ export const ru: Translations = {
   'route_info.duration_m': '{{m}} мин',
   'route_info.distance_km': '{{km}} км',
 
+  'nav.start': 'Начать',
+  'nav.stop': 'Стоп',
+
   'timeline.title': 'Прогноз по маршруту',
 
   'details.coords': 'Координаты',

@@ -27,6 +27,9 @@ export const lv: Translations = {
   'route_info.duration_m': '{{m}} min',
   'route_info.distance_km': '{{km}} km',
 
+  'nav.start': 'Sākt',
+  'nav.stop': 'Stop',
+
   'timeline.title': 'Prognoze maršrutā',
 
   'details.coords': 'Koordinātas',

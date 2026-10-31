@@ -27,6 +27,9 @@ export const en: Translations = {
   'route_info.duration_m': '{{m}} min',
   'route_info.distance_km': '{{km}} km',
 
+  'nav.start': 'Start',
+  'nav.stop': 'Stop',
+
   'timeline.title': 'Forecast along route',
 
   'details.coords': 'Coordinates',

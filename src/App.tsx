@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RouteForm, type RouteFormValues } from './components/RouteForm';
 import { RouteMap } from './components/RouteMap';
 import { WeatherTimeline } from './components/WeatherTimeline';
@@ -36,14 +36,34 @@ function App() {
   const [resolvedPlaces, setResolvedPlaces] = useState<Place[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [navigating, setNavigating] = useState(false);
+  const [navError, setNavError] = useState<string | null>(null);
+
+  function stopNavigation() {
+    setNavigating(false);
+    setNavError(null);
+  }
+
+  function startNavigation() {
+    setNavError(null);
+    setSelectedIndex(null);
+    setSidebarCollapsed(true);
+    setNavigating(true);
+  }
+
+  const handleNavigationError = useCallback((msg: string) => {
+    setNavError(msg);
+  }, []);
 
   async function handleSubmit(values: RouteFormValues) {
     setLoading(true);
     setError(null);
+    setNavError(null);
     setSamples([]);
     setRoute(null);
     setResolvedPlaces([]);
     setSelectedIndex(null);
+    setNavigating(false);
     try {
       const places = await Promise.all(
         values.waypoints.map((wp, i) => resolveWaypoint(wp, i === 0)),
@@ -73,7 +93,7 @@ function App() {
   }
 
   return (
-    <div className={`app${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+    <div className={`app${sidebarCollapsed ? ' sidebar-collapsed' : ''}${navigating ? ' navigating' : ''}`}>
       <aside className={`sidebar${sidebarCollapsed ? ' collapsed' : ''}`}>
         {sidebarCollapsed ? (
           <button
@@ -106,6 +126,7 @@ function App() {
             </div>
             <RouteForm onSubmit={handleSubmit} loading={loading} />
             {error && <div className="error">{error}</div>}
+            {navError && <div className="error">{navError}</div>}
             {route && resolvedPlaces.length > 0 && (
               <div className="route-info">
                 <ol className="route-points">
@@ -121,22 +142,38 @@ function App() {
                   <strong>{t('route_info.duration')}</strong>{' '}
                   {formatDuration(t, route.totalDurationSec)}
                 </div>
+                {navigating ? (
+                  <button type="button" className="nav-stop-btn" onClick={stopNavigation}>
+                    {t('nav.stop')}
+                  </button>
+                ) : (
+                  <button type="button" className="nav-start-btn" onClick={startNavigation}>
+                    {t('nav.start')}
+                  </button>
+                )}
               </div>
             )}
             <WeatherTimeline
               samples={samples}
               selectedIndex={selectedIndex}
-              onSelect={setSelectedIndex}
+              onSelect={navigating ? () => {} : setSelectedIndex}
             />
           </>
         )}
       </aside>
       <main className="map-pane">
+        {navigating && (
+          <button type="button" className="nav-stop-fab" onClick={stopNavigation}>
+            {t('nav.stop')}
+          </button>
+        )}
         <RouteMap
           route={route}
           samples={samples}
-          selectedIndex={selectedIndex}
-          onSelect={setSelectedIndex}
+          selectedIndex={navigating ? null : selectedIndex}
+          onSelect={navigating ? () => {} : setSelectedIndex}
+          navigating={navigating}
+          onNavigationError={handleNavigationError}
         />
       </main>
     </div>

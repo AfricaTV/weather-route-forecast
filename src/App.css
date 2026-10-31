@@ -328,6 +328,88 @@ html, body, #root {
   gap: 4px;
 }
 
+.nav-start-btn,
+.nav-stop-btn {
+  margin-top: 8px;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nav-start-btn {
+  background: #16a34a;
+  color: white;
+}
+
+.nav-start-btn:hover {
+  background: #15803d;
+}
+
+.nav-stop-btn {
+  background: white;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.nav-stop-btn:hover {
+  background: #fef2f2;
+}
+
+.nav-stop-fab {
+  position: absolute;
+  right: 12px;
+  bottom: 24px;
+  z-index: 1100;
+  background: white;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.nav-stop-fab:hover {
+  background: #fef2f2;
+}
+
+.nav-arrow-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+.nav-arrow {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.nav-arrow::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 16px solid white;
+}
+
+.route-map.navigating {
+  cursor: grab;
+}
+
 .weather-timeline h3 {
   font-size: 15px;
   margin: 0 0 8px;
