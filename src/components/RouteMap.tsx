@@ -287,6 +287,8 @@ function MapRotationController({
   route,
   autoFollowHeading,
   onAutoFollowHeadingChange,
+  followPosition,
+  onFollowPositionChange,
   onBearingChange,
 }: {
   navigating: boolean;
@@ -294,6 +296,8 @@ function MapRotationController({
   route: Route | null;
   autoFollowHeading: boolean;
   onAutoFollowHeadingChange: (v: boolean) => void;
+  followPosition: boolean;
+  onFollowPositionChange: (v: boolean) => void;
   onBearingChange: (bearing: number) => void;
 }) {
   const map = useMap();
@@ -306,10 +310,12 @@ function MapRotationController({
   const programmaticZoomRef = useRef(false);
   const userDraggingRef = useRef(false);
   const autoFollowRef = useRef(autoFollowHeading);
+  const followPositionRef = useRef(followPosition);
   const rotatingGestureRef = useRef(false);
 
   poseRef.current = pose;
   autoFollowRef.current = autoFollowHeading;
+  followPositionRef.current = followPosition;
 
   const stopLoop = () => {
     if (rafRef.current != null) {
@@ -363,6 +369,8 @@ function MapRotationController({
 
     const onDragStart = () => {
       userDraggingRef.current = true;
+      // Free-pan: stop sticky follow until the user taps locate-me.
+      onFollowPositionChange(false);
     };
     const onDragEnd = () => {
       userDraggingRef.current = false;
@@ -559,6 +567,7 @@ function MapRotationController({
     if (!navigating) {
       zoomReadyRef.current = false;
       userAdjustedZoomRef.current = false;
+      onFollowPositionChange(true);
       // Overview is easier north-up after Stop.
       onAutoFollowHeadingChange(true);
       setBearingImmediate(0);
@@ -566,6 +575,7 @@ function MapRotationController({
     }
 
     userAdjustedZoomRef.current = false;
+    onFollowPositionChange(true);
     onAutoFollowHeadingChange(true);
     if (route && route.points.length >= 2) {
       const initial = bearingDegrees(route.points[0], route.points[1]);
@@ -605,12 +615,18 @@ function MapRotationController({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigating, map, route]);
 
-  // GPS follow while navigating: pan only — never re-force NAV_ZOOM after user pinches out.
+  // GPS follow while navigating: pan only when followPosition is on (locate-me resumes it).
   useEffect(() => {
     if (!navigating || !pose) return;
 
     if (autoFollowRef.current) {
       setBearingTarget(pose.heading);
+    }
+
+    // User panned away — keep their view; only heading may still update above.
+    if (!followPositionRef.current) {
+      applyMapBearing(map, smoothBearingRef.current);
+      return;
     }
 
     if (userDraggingRef.current || rotatingGestureRef.current) return;
@@ -628,7 +644,7 @@ function MapRotationController({
     map.panTo([pose.lat, pose.lon], { animate: false });
     applyMapBearing(map, smoothBearingRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigating, pose, map, autoFollowHeading]);
+  }, [navigating, pose, map, autoFollowHeading, followPosition]);
 
   // When auto-follow turns back on, snap target to current GPS/route heading.
   useEffect(() => {
@@ -656,6 +672,7 @@ export function RouteMap({
   const [pose, setPose] = useState<NavPose | null>(null);
   const [bearing, setBearing] = useState(0);
   const [autoFollowHeading, setAutoFollowHeading] = useState(true);
+  const [followPosition, setFollowPosition] = useState(true);
   const [locating, setLocating] = useState(false);
   const [locateFix, setLocateFix] = useState<{ lat: number; lon: number } | null>(null);
   const userLocationIconRef = useRef(makeUserLocationIcon());
@@ -755,6 +772,7 @@ export function RouteMap({
 
     // While navigating we already have a live pose — snap back and resume follow.
     if (navigating && pose) {
+      setFollowPosition(true);
       setAutoFollowHeading(true);
       map.setView([pose.lat, pose.lon], Math.max(map.getZoom(), NAV_ZOOM), { animate: true });
       map.getContainer().dispatchEvent(
@@ -775,6 +793,7 @@ export function RouteMap({
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
       setLocateFix({ lat, lon });
+      setFollowPosition(true);
       map.setView([lat, lon], Math.max(map.getZoom(), 15), { animate: true });
     } catch (e) {
       const message =
@@ -847,6 +866,8 @@ export function RouteMap({
           route={route}
           autoFollowHeading={autoFollowHeading}
           onAutoFollowHeadingChange={setAutoFollowHeading}
+          followPosition={followPosition}
+          onFollowPositionChange={setFollowPosition}
           onBearingChange={setBearing}
         />
         <InvalidateOnResize active={!hasRoute || navigating} />
