@@ -394,8 +394,9 @@ function MapRotationController({
       e.preventDefault();
       e.stopPropagation();
       const angle = touchAngle(e.touches[0], e.touches[1]);
+      // Invert so the map turns with the fingers (natural feel on real devices).
       const delta = shortestDelta(gestureStartAngle, angle);
-      setBearingImmediate(gestureStartBearing + delta);
+      setBearingImmediate(gestureStartBearing - delta);
 
       const dx = e.touches[1].clientX - e.touches[0].clientX;
       const dy = e.touches[1].clientY - e.touches[0].clientY;
