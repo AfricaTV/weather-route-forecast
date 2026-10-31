@@ -83,7 +83,8 @@ function App() {
             aria-label={t('app.expand_sidebar')}
             title={t('app.expand_sidebar')}
           >
-            »
+            <span className="chevron chevron-h" aria-hidden="true">»</span>
+            <span className="chevron chevron-v" aria-hidden="true">▼</span>
           </button>
         ) : (
           <>
@@ -98,7 +99,8 @@ function App() {
                   aria-label={t('app.collapse_sidebar')}
                   title={t('app.collapse_sidebar')}
                 >
-                  «
+                  <span className="chevron chevron-h" aria-hidden="true">«</span>
+                  <span className="chevron chevron-v" aria-hidden="true">▲</span>
                 </button>
               </div>
             </div>

@@ -20,19 +20,58 @@ interface Props {
   onSelect: (index: number | null) => void;
 }
 
+function fitRouteToMap(map: L.Map, route: Route) {
+  map.invalidateSize({ animate: false });
+  const size = map.getSize();
+  // Wait until the container has a real size (mobile layout / flex settle).
+  if (size.x < 80 || size.y < 80) return;
+
+  const bounds = L.latLngBounds(route.points.map((p) => [p.lat, p.lon]));
+  // Keep more margin on small screens so the whole route stays in view.
+  const padX = Math.max(24, Math.round(size.x * 0.1));
+  const padY = Math.max(24, Math.round(size.y * 0.1));
+  map.fitBounds(bounds, {
+    padding: [padX, padY],
+    maxZoom: 12,
+    animate: false,
+  });
+}
+
 function FitBounds({ route }: { route: Route | null }) {
   const map = useMap();
   useEffect(() => {
     if (!route || route.points.length === 0) return;
-    const bounds = L.latLngBounds(route.points.map((p) => [p.lat, p.lon]));
-    map.fitBounds(bounds, { padding: [40, 40] });
+
+    const fit = () => fitRouteToMap(map, route);
+    fit();
+    // Second pass after flex/mobile chrome finishes resizing the map pane.
+    const t1 = window.setTimeout(fit, 50);
+    const t2 = window.setTimeout(fit, 250);
+
+    let debounce: number | undefined;
+    const container = map.getContainer();
+    const target = container.parentElement ?? container;
+    const ro = new ResizeObserver(() => {
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(fit, 80);
+    });
+    ro.observe(target);
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(debounce);
+      ro.disconnect();
+    };
   }, [route, map]);
   return null;
 }
 
-function InvalidateOnResize() {
+function InvalidateOnResize({ hasRoute }: { hasRoute: boolean }) {
   const map = useMap();
   useEffect(() => {
+    // When a route is shown, FitBounds already handles resize + refit.
+    if (hasRoute) return;
     const container = map.getContainer();
     const target = container.parentElement ?? container;
     const ro = new ResizeObserver(() => {
@@ -40,7 +79,7 @@ function InvalidateOnResize() {
     });
     ro.observe(target);
     return () => ro.disconnect();
-  }, [map]);
+  }, [map, hasRoute]);
   return null;
 }
 
@@ -113,7 +152,7 @@ export function RouteMap({ route, samples, selectedIndex, onSelect }: Props) {
         </Marker>
       ))}
       <FitBounds route={route} />
-      <InvalidateOnResize />
+      <InvalidateOnResize hasRoute={Boolean(route && route.points.length > 0)} />
     </MapContainer>
   );
 }
